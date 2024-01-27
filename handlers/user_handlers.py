@@ -32,7 +32,7 @@ async def process_start_command(message: Message) -> None:
 Чтобы заказать и/или узнать стоимость бота по вашему запросу, ответьте на несколько вопросов ниже.
 ❗️ Если у вас останутся вопросы или чат-бот вам нужен срочно, свяжитесь со мной лично @AntonPon0marev сразу после ответов.
 """)
-    await asyncio.sleep(1)
+    await asyncio.sleep(10)
     button_1 = InlineKeyboardButton(text='ВК',
                                     callback_data='vk_data')
     button_2 = InlineKeyboardButton(text='Телеграм',
@@ -79,7 +79,7 @@ async def process_file(message: Message, state: FSMContext) -> None:
 #         await bot.download_file(file_path, save_path)
 
 
-@router.message((F.document | F.photo), StateFilter(Form.file))
+@router.message((F.document | F.photo | F.text), StateFilter(Form.file))
 async def process_material(message: Message, state: FSMContext, bot: Bot) -> None:
     logging.info(f'process_material: {message.chat.id}')
     if message.content_type == 'photo':
@@ -90,6 +90,8 @@ async def process_material(message: Message, state: FSMContext, bot: Bot) -> Non
         file_path = file.file_path
         save_path = os.path.join('data', f'{message.chat.id}-{file_id}.jpeg')
         await bot.download_file(file_path, save_path)
+    elif message.content_type == 'text':
+        await state.update_data(text_tz=message.text)
     else:
         doc = message.document
         file_name = doc.file_name
@@ -127,6 +129,12 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                              caption=f'Для какой социальной сети нужен бот: {user_dict[callback.message.chat.id]["social"]}\n'
                                      f'Описание функционала бота: {user_dict[callback.message.chat.id]["description"]}\n'
                                      f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}')
+    elif 'text_tz' in user_dict[callback.message.chat.id]:
+        await bot.send_message(chat_id=config.tg_bot.admin_ids,
+                               text=f'Для какой социальной сети нужен бот: {user_dict[callback.message.chat.id]["social"]}\n'
+                                    f'Описание функционала бота: {user_dict[callback.message.chat.id]["description"]}\n'
+                                    f'Техническое задание: {user_dict[callback.message.chat.id]["text_tz"]}\n'
+                                    f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}')
     else:
         await bot.send_message(chat_id=config.tg_bot.admin_ids,
                                text=f'Для какой социальной сети нужен бот: {user_dict[callback.message.chat.id]["social"]}\n'
@@ -136,6 +144,6 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
         await bot.send_document(chat_id=config.tg_bot.admin_ids,
                                 document=document)
     await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
-А пока подписывайтесь на мой канал: <a href='https://t.me/GigabytesChatbots'>https://t.me/GigabytesChatbots</a>
+А пока подписывайтесь на мой канал: <a href='https://t.me/GigabytesChatbots'>@GigabytesChatbots</a>
 Работы, цены, разборы и советы по продвижению в ТГ.""")
 
