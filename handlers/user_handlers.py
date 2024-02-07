@@ -128,22 +128,25 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                              photo=user_dict[callback.message.chat.id]["photo_id"],
                              caption=f'Для какой социальной сети нужен бот: {user_dict[callback.message.chat.id]["social"]}\n'
                                      f'Описание функционала бота: {user_dict[callback.message.chat.id]["description"]}\n'
-                                     f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}')
+                                     f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}'
+                                     f'{callback.message.from_user.username}')
     elif 'text_tz' in user_dict[callback.message.chat.id]:
         await bot.send_message(chat_id=config.tg_bot.admin_ids,
                                text=f'Для какой социальной сети нужен бот: {user_dict[callback.message.chat.id]["social"]}\n'
                                     f'Описание функционала бота: {user_dict[callback.message.chat.id]["description"]}\n'
                                     f'Техническое задание: {user_dict[callback.message.chat.id]["text_tz"]}\n'
-                                    f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}')
+                                    f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}'
+                                    f'{callback.message.from_user.username}')
     else:
         await bot.send_message(chat_id=config.tg_bot.admin_ids,
                                text=f'Для какой социальной сети нужен бот: {user_dict[callback.message.chat.id]["social"]}\n'
                                     f'Описание функционала бота: {user_dict[callback.message.chat.id]["description"]}\n'
-                                    f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}')
+                                    f'Материал для бота: {user_dict[callback.message.chat.id]["material"]}'
+                                    f'{callback.message.from_user.username}')
         document = FSInputFile(f'{user_dict[callback.message.chat.id]["path_document"]}')
         await bot.send_document(chat_id=config.tg_bot.admin_ids,
                                 document=document)
     await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
-А пока подписывайтесь на мой канал: <a href='https://t.me/GigabytesChatbots'>@GigabytesChatbots</a>
+А пока подписывайтесь на мой канал: <a href='https://t.me/+1Qu1_h2OKGw3OTYy'>@GigabytesChatbots</a>
 Работы, цены, разборы и советы по продвижению в ТГ.""")
 
