@@ -1,6 +1,6 @@
 from aiogram import Router, F, Bot
 from aiogram.filters import Command, CommandStart, StateFilter
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, File
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, File, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup, default_state
 import logging
@@ -18,11 +18,12 @@ user_dict = dict()
 class Form(StatesGroup):
     description = State()
     file = State()
-    video2 = State()
-    paper2 = State()
-    video3 = State()
-    paper3 = State()
-    finish = State()
+    contact = State()
+    # video2 = State()
+    # paper2 = State()
+    # video3 = State()
+    # paper3 = State()
+    # finish = State()
 
 
 @router.message(CommandStart())
@@ -82,9 +83,12 @@ async def process_file(message: Message, state: FSMContext) -> None:
 @router.message((F.document | F.photo | F.text), StateFilter(Form.file))
 async def process_material(message: Message, state: FSMContext, bot: Bot) -> None:
     logging.info(f'process_material: {message.chat.id}')
-    user_name = message.from_user.username
-    print(user_name)
-    await state.update_data(username=user_name)
+    try:
+        user_name = message.from_user.username
+        print(user_name)
+        await state.update_data(username=user_name)
+    except:
+        await state.update_data(username='not_username')
     if message.content_type == 'photo':
         photo = message.photo[-1]  # Получаем последнюю отправленную фотографию
         file_id = photo.file_id
@@ -150,7 +154,26 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
         document = FSInputFile(f'{user_dict[callback.message.chat.id]["path_document"]}')
         await bot.send_document(chat_id=config.tg_bot.admin_ids,
                                 document=document)
-    await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
+    if user_dict[callback.message.chat.id]["username"] == 'not_username':
+        button = KeyboardButton(text='Поделиться', request_contact=True)
+        keyboard = ReplyKeyboardMarkup(keyboard=[[button]], resize_keyboard=True)
+        await callback.message.answer(text="В вашем профиле отсутствует username, пришлите мне контакт для связи")
+        await state.set_state(Form.contact)
+    else:
+        await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
+        А пока подписывайтесь на мой канал: <a href='https://t.me/+1Qu1_h2OKGw3OTYy'>@GigabytesChatbots</a>
+        Работы, цены, разборы и советы по продвижению в ТГ.""")
+@router.message(StateFilter(Form.contact))
+async def get_contact(message: Message, state: FSMContext, bot: Bot):
+    # contact = 'none'
+    if message.contact:
+        contact = message.contact
+    else:
+        contact = message.text
+    await bot.send_message(chat_id=config.tg_bot.admin_ids,
+                           text=f'Контактный телефон заказчика: {contact}')
+    await message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
 А пока подписывайтесь на мой канал: <a href='https://t.me/+1Qu1_h2OKGw3OTYy'>@GigabytesChatbots</a>
 Работы, цены, разборы и советы по продвижению в ТГ.""")
+    await state.set_state(default_state)
 
