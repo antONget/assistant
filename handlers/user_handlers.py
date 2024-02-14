@@ -165,6 +165,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
         await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
         А пока подписывайтесь на мой канал: <a href='https://t.me/+1Qu1_h2OKGw3OTYy'>@GigabytesChatbots</a>
         Работы, цены, разборы и советы по продвижению в ТГ.""")
+
         await bot.send_message(chat_id=config.tg_bot.admin_ids,
                                text=f'Контактный телефон заказчика: {callback.message.contact}')
 
