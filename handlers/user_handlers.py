@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.filters import Command, CommandStart, StateFilter
+from aiogram.filters import Command, CommandStart, StateFilter, or_f
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, File, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup, default_state
@@ -80,7 +80,7 @@ async def process_file(message: Message, state: FSMContext) -> None:
 #         await bot.download_file(file_path, save_path)
 
 
-@router.message((F.document | F.photo | F.text), StateFilter(Form.file))
+@router.message(or_f(F.document, F.photo, F.text), StateFilter(Form.file))
 async def process_material(message: Message, state: FSMContext, bot: Bot) -> None:
     logging.info(f'process_material: {message.chat.id}')
     try:
@@ -114,7 +114,7 @@ async def process_material(message: Message, state: FSMContext, bot: Bot) -> Non
     button_3 = InlineKeyboardButton(text='Потребуется помощь специалистов',
                                     callback_data='None_done')
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[button_1, button_2, button_3]],
+        inline_keyboard=[[button_1, button_2], [button_3]],
     )
     await message.answer(text="""У вас уже готовы все материалы для бота? Или потребуется привлечение копирайтера/дизайнера и пр.?
 """,
@@ -154,10 +154,12 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
         document = FSInputFile(f'{user_dict[callback.message.chat.id]["path_document"]}')
         await bot.send_document(chat_id=config.tg_bot.admin_ids,
                                 document=document)
-    if user_dict[callback.message.chat.id]["username"] == 'not_username':
+    print(type(user_dict[callback.message.chat.id]["username"]))
+    if user_dict[callback.message.chat.id]["username"] == None:
         button = KeyboardButton(text='Поделиться', request_contact=True)
         keyboard = ReplyKeyboardMarkup(keyboard=[[button]], resize_keyboard=True)
-        await callback.message.answer(text="В вашем профиле отсутствует username, пришлите мне контакт для связи")
+        await callback.message.answer(text="В вашем профиле отсутствует username, пришлите мне контакт для связи",
+                                      reply_markup=keyboard)
         await state.set_state(Form.contact)
     else:
         await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
