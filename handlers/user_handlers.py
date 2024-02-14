@@ -163,6 +163,8 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
         await callback.message.answer(text="""🧑🏼‍💻Благодарю за ответы.  Свяжусь с вами в ближайшее время.
         А пока подписывайтесь на мой канал: <a href='https://t.me/+1Qu1_h2OKGw3OTYy'>@GigabytesChatbots</a>
         Работы, цены, разборы и советы по продвижению в ТГ.""")
+
+
 @router.message(StateFilter(Form.contact))
 async def get_contact(message: Message, state: FSMContext, bot: Bot):
     # contact = 'none'
