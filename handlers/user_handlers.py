@@ -67,11 +67,13 @@ async def process_create_order(callback: CallbackQuery, bot: Bot, state: FSMCont
 
 
 @router.callback_query(F.data.startswith('platform_'))
+@error_handler
 async def process_select_platform(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """
     Выбор нескольких платформ
     :param callback:
     :param state:
+    :param bot:
     :return:
     """
     logging.info(f'process_select_platform: {callback.message.chat.id}')
@@ -104,11 +106,13 @@ async def process_select_platform(callback: CallbackQuery, state: FSMContext, bo
 
 
 @router.callback_query(F.data.startswith('method_'))
+@error_handler
 async def process_select_platform(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """
     Выбор нескольких платформ
     :param callback:
     :param state:
+    :param bot:
     :return:
     """
     logging.info(f'process_select_platform: {callback.message.chat.id}')
@@ -127,11 +131,13 @@ async def process_select_platform(callback: CallbackQuery, state: FSMContext, bo
 
 
 @router.message(StateFilter(Form.description))
+@error_handler
 async def get_task(message: Message, state: FSMContext, bot: Bot) -> None:
     """
     Получаем описание задачи
     :param message:
     :param state:
+    :param bot:
     :return:
     """
     logging.info(f'get_task: {message.chat.id}')
@@ -147,6 +153,7 @@ async def get_task(message: Message, state: FSMContext, bot: Bot) -> None:
 
 
 @router.message(or_f(F.document, F.photo, F.text), StateFilter(Form.file))
+@error_handler
 async def process_material(message: Message, state: FSMContext, bot: Bot) -> None:
     """
     Получаем материалы от пользователя
@@ -176,6 +183,7 @@ async def process_material(message: Message, state: FSMContext, bot: Bot) -> Non
 
 
 @router.callback_query(F.data == 'pass_tz')
+@error_handler
 async def process_pass_tz(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """
     Пропуск добавления файлов
@@ -192,6 +200,7 @@ async def process_pass_tz(callback: CallbackQuery, state: FSMContext, bot: Bot) 
 
 
 @router.callback_query(F.data.endswith('_done'))
+@error_handler
 async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     logging.info(f'process_finish: {callback.message.chat.id}')
     await state.update_data(material=callback.data.split('_')[0])
