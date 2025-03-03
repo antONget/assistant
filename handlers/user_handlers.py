@@ -4,9 +4,7 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-
 import logging
-
 
 from config_data.config import Config, load_config
 from keyboards import user_keyboard as kb
@@ -214,7 +212,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                                          f'Способ разработки: {data["method"]}\n'
                                          f'Описание функционала бота: {data["description"]}\n'
                                          f'Материал для бота: {data["material"]}\n'
-                                         f'Заказчик: @{data["username"]}/{callback.from_user.id}')
+                                         f'Заказчик: <a href="tg://user?id={message.from_user.username}">')
         elif 'doc_id' in data:
             await bot.send_document(chat_id=config.tg_bot.admin_ids,
                                     document=data['doc_id'],
@@ -222,7 +220,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                                             f'Способ разработки: {data["method"]}\n'
                                             f'Описание функционала бота: {data["description"]}\n'
                                             f'Материал для бота: {data["material"]}\n'
-                                            f'Заказчик: @{data["username"]}/{callback.from_user.id}')
+                                            f'Заказчик: <a href="tg://user?id={message.from_user.username}">')
         else:
             await bot.send_message(chat_id=config.tg_bot.admin_ids,
                                    text=f'Для какой социальной сети нужен бот: {data["dict_select"]}\n'
@@ -230,7 +228,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                                         f'Описание функционала бота: {data["description"]}\n'
                                         f'Материал для бота: {data["material"]}\n'
                                         f'Техническое задание: {data["text_tz"]}\n'
-                                        f'Заказчик: @{data["username"]}/{callback.from_user.id}')
+                                        f'Заказчик: <a href="tg://user?id={message.from_user.username}">')
         await callback.message.answer(text="🧑🏼‍💻Благодарю за ответы.\n"
                                            "Свяжусь с вами в ближайшее время.\n"
                                            "Работы, цены и советы по продвижению в моем ТГ канале:"
@@ -270,7 +268,7 @@ async def process_validate_russian_phone_number(message: Message, state: FSMCont
                                      f'Способ разработки: {data["method"]}\n'
                                      f'Описание функционала бота: {data["description"]}\n'
                                      f'Материал для бота: {data["material"]}\n'
-                                     f'Заказчик: @{data["username"]}/{message.from_user.id}\n'
+                                     f'Заказчик: <a href="tg://user?id={message.from_user.username}">\n'
                                      f'Телефон: {data["phone"]}')
     elif 'doc_id' in data:
         await bot.send_document(chat_id=config.tg_bot.admin_ids,
@@ -280,7 +278,7 @@ async def process_validate_russian_phone_number(message: Message, state: FSMCont
                                         f'Описание функционала бота: {data["description"]}\n'
                                         f'Техническое задание: {data["text_tz"]}\n'
                                         f'Материал для бота: {data["material"]}\n'
-                                        f'Заказчик: @{data["username"]}/{message.from_user.id}\n'
+                                        f'Заказчик: <a href="tg://user?id={message.from_user.username}">\n'
                                         f'Телефон: {data["phone"]}')
     else:
         await bot.send_message(chat_id=config.tg_bot.admin_ids,
@@ -288,10 +286,9 @@ async def process_validate_russian_phone_number(message: Message, state: FSMCont
                                     f'Способ разработки: {data["method"]}\n'
                                     f'Описание функционала бота: {data["description"]}\n'
                                     f'Материал для бота: {data["material"]}\n'
-                                    f'Заказчик: @{data["username"]}/{message.from_user.id}\n'
+                                    f'Заказчик: <a href="tg://user?id={message.from_user.username}">\n'
                                     f'Телефон: {data["phone"]}')
     await message.answer(text="🧑🏼‍💻Благодарю за ответы.\n"
                               "Свяжусь с вами в ближайшее время.\n"
                               "Работы, цены и советы по продвижению в моем ТГ канале:"
                               " <a href='https://t.me/+1Qu1_h2OKGw3OTYy'>@GigabytesChatbots</a>\n")
-
