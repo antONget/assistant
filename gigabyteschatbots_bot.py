@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
-from handlers import user_handlers, other_handlers, error
+from handlers import user_handlers, other_handlers, error, generate_custom
 from notify_admins import on_startup_notify
 
 
@@ -34,6 +34,7 @@ async def main():
     # Регистрируем router в диспетчере
     dp.include_router(error.router)
     dp.include_router(user_handlers.router)
+    dp.include_router(generate_custom.router)
     dp.include_router(other_handlers.router)
 
     # Пропускаем накопившиеся update и запускаем polling
