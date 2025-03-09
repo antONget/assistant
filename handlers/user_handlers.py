@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram import Router, F, Bot
 from aiogram.filters import CommandStart, StateFilter, or_f
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
@@ -34,6 +36,7 @@ async def process_start_command(message: Message, bot: Bot, state: FSMContext) -
     """
     logging.info(f'process_start_command: {message.chat.id}')
     await state.set_state(state=None)
+    await state.clear()
     await message.answer(text=f'👋 Приветствую!\n'
                               f'Чтобы заказать и/или узнать стоимость бота по вашему запросу, заполните заявку.\n'
                               f'❗️ Если у вас есть вопросы или чат-бот вам нужен срочно, свяжитесь со мной лично'
@@ -45,6 +48,12 @@ async def process_start_command(message: Message, bot: Bot, state: FSMContext) -
         await state.update_data(username='not_username')
     await bot.send_message(chat_id=config.tg_bot.admin_ids,
                            text=f'Пользователь @{message.from_user.username}/{message.from_user.id} запустил бота')
+    await asyncio.sleep(60 * 60)
+    data = await state.get_data()
+    if not data.get('finish_dialog', False):
+        await message.answer(text='Здравствуйте, вы запускали моего бота помощника для заказа разработки бота,'
+                                  ' и не завершили оформление. У вас остались какие нибудь вопросы?'
+                                  ' Готов на них ответить.')
 
 
 @router.callback_query(F.data == 'create_order')
@@ -202,6 +211,7 @@ async def process_pass_tz(callback: CallbackQuery, state: FSMContext, bot: Bot) 
 async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     logging.info(f'process_finish: {callback.message.chat.id}')
     await state.update_data(material=callback.data.split('_')[0])
+    await state.update_data(finish_dialog=True)
     data = await state.get_data()
     if not data['username'] == 'not_username':
 
@@ -212,7 +222,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                                          f'Способ разработки: {data["method"]}\n'
                                          f'Описание функционала бота: {data["description"]}\n'
                                          f'Материал для бота: {data["material"]}\n'
-                                         f'Заказчик: <a href="tg://user?id={message.from_user.username}">')
+                                         f'Заказчик: <a href="tg://user?id={callback.from_user.username}">')
         elif 'doc_id' in data:
             await bot.send_document(chat_id=config.tg_bot.admin_ids,
                                     document=data['doc_id'],
@@ -220,7 +230,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                                             f'Способ разработки: {data["method"]}\n'
                                             f'Описание функционала бота: {data["description"]}\n'
                                             f'Материал для бота: {data["material"]}\n'
-                                            f'Заказчик: <a href="tg://user?id={message.from_user.username}">')
+                                            f'Заказчик: <a href="tg://user?id={callback.from_user.username}">')
         else:
             await bot.send_message(chat_id=config.tg_bot.admin_ids,
                                    text=f'Для какой социальной сети нужен бот: {data["dict_select"]}\n'
@@ -228,7 +238,7 @@ async def process_finish(callback: CallbackQuery, state: FSMContext, bot: Bot) -
                                         f'Описание функционала бота: {data["description"]}\n'
                                         f'Материал для бота: {data["material"]}\n'
                                         f'Техническое задание: {data["text_tz"]}\n'
-                                        f'Заказчик: <a href="tg://user?id={message.from_user.username}">')
+                                        f'Заказчик: <a href="tg://user?id={callback.from_user.username}">')
         await callback.message.answer(text="🧑🏼‍💻Благодарю за ответы.\n"
                                            "Свяжусь с вами в ближайшее время.\n"
                                            "Работы, цены и советы по продвижению в моем ТГ канале:"
@@ -261,6 +271,7 @@ async def process_validate_russian_phone_number(message: Message, state: FSMCont
             return
     await state.update_data(phone=phone)
     data = await state.get_data()
+    await state.update_data(finish_dialog=True)
     if 'photo_id' in data:
         await bot.send_photo(chat_id=config.tg_bot.admin_ids,
                              photo=data["photo_id"],

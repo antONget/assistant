@@ -1,7 +1,7 @@
 # preprocessing
 ## подготовка списка зависимостей
 ```bash
-pip freeze > requirements.txt
+pip freeze > req.txt
 ```
 
 # Bot
@@ -25,7 +25,7 @@ venv/Scripts/activate
 ```
 ### Установите требуемы зависисмости для проекта
 ```bash 
-pip install -r requirements.txt
+pip install -r req.txt
 ```
 ### Необезательный пункт
 Внесите изменения в файл .env в папке config (если требуется изменить токен бота или id канала)

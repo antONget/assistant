@@ -1,0 +1,5 @@
+.env
+*.xml
+*.iml
+/.idea
+/data
