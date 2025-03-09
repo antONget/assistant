@@ -53,7 +53,7 @@ async def process_start_command(message: Message, bot: Bot, state: FSMContext) -
     if not data.get('finish_dialog', False):
         await message.answer(text='Здравствуйте, вы запускали моего бота помощника для заказа разработки бота,'
                                   ' и не завершили оформление. У вас остались какие нибудь вопросы?'
-                                  ' Готов на них ответить.')
+                                  ' Готов на них ответить. Напишите мне в личные сообщения @AntonPon0marev')
 
 
 @router.callback_query(F.data == 'create_order')
