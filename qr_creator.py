@@ -119,7 +119,7 @@ async def start_create_qr(url: str, text: str, tg_id: int,  logo_path: str):
 # Параметры
     qr_size = 600  # Увеличенный размер для лучшего качества
     text_height = 120
-    font_path = "arial_bolditalicmt.ttf"
+    font_path = "handlers/arial_bolditalicmt.ttf"
 
     # Генерация QR-кода
     qr_image = create_robust_qr(

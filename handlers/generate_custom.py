@@ -1,14 +1,13 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.filters import CommandStart, StateFilter, or_f
+from aiogram.filters import StateFilter
 from config_data.config import Config, load_config
 import os
 import logging
 
 from qr_creator import start_create_qr
-from wb_sync_bot_main.database.advert import delete_advert
 
 router = Router()
 config: Config = load_config()
