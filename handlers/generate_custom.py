@@ -4,10 +4,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import CommandStart, StateFilter, or_f
 from config_data.config import Config, load_config
-import qrcode
-from PIL import Image
 import os
 import logging
+
+from qr_creator import start_create_qr
+from wb_sync_bot_main.database.advert import delete_advert
 
 router = Router()
 config: Config = load_config()
@@ -40,7 +41,9 @@ async def download_photo(message: Message, bot: Bot):
 @router.message(F.text == '/QR')
 async def all_message(message: Message, state: FSMContext) -> None:
     logging.info(f'all_message {message.chat.id} / {message.text}')
-    await message.answer(text='Пришлите логотип и описание к нему для ссылки')
+    await message.answer(text='Пришлите логотип , ссылку и текст который будет под qr через _')
+    await message.answer("Пример: https://example.com_Scan Me!")
+    await message.answer_photo(photo="example.png")
     await state.set_state(LinkQr.link_qr)
 
 
@@ -48,40 +51,10 @@ async def all_message(message: Message, state: FSMContext) -> None:
 async def all_message(message: Message, state: FSMContext, bot: Bot) -> None:
     # 🔹 Данные для QR-кода (ссылка или текст)
     data = message.caption
-
-    # 🔹 Генерация QR-кода
-    qr = qrcode.QRCode(
-        version=5,  # Размер QR-кода (1-40, чем больше, тем плотнее)
-        error_correction=qrcode.constants.ERROR_CORRECT_H,  # Устойчивость к повреждениям
-        box_size=10,  # Размер каждого квадрата
-        border=4,  # Размер границы
-    )
-    qr.add_data(data)
-    qr.make(fit=True)
-
-    # 🔹 Создание изображения QR-кода
-    qr_img = qr.make_image(fill="black", back_color="white").convert("RGB")
-
-    # 🔹 Добавление логотипа (если есть)
+    if not "_" in data:
+        data = f"{data}_{data}"
+    data = data.split("_")
     await download_photo(message=message, bot=bot)
     logo_path = f"QR/{message.from_user.id}.png"  # Укажите свой логотип
-    # logo_path = '/Users/antonponomarev/PycharmProjects/pythonProject3/QR/843554518.jpg'
-    # try:
-    logo = Image.open(logo_path)
-
-    # Приводим логотип к нужному размеру
-    logo_size = (qr_img.size[0] // 4, qr_img.size[1] // 4)
-    logo = logo.resize(logo_size)
-
-    # Вставляем логотип в центр QR-кода
-    pos = ((qr_img.size[0] - logo.size[0]) // 2, (qr_img.size[1] - logo.size[1]) // 2)
-    qr_img.paste(logo, pos)
-
-    # except FileNotFoundError:
-    #     await message.answer("⚠ Логотип не найден, создаем QR-код без него.")
-
-    # 🔹 Сохранение QR-кода
-    output_file = f"QR/{message.from_user.id}.png"
-    qr_img.save(output_file)
-    photo = FSInputFile(output_file)
+    photo = await start_create_qr(url=data[0], text=data[1], tg_id=message.from_user.id, logo_path=logo_path)
     await message.answer_photo(photo=photo)
