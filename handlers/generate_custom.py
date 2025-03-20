@@ -42,7 +42,7 @@ async def all_message(message: Message, state: FSMContext) -> None:
     logging.info(f'all_message {message.chat.id} / {message.text}')
     await message.answer(text='Пришлите логотип , ссылку и текст который будет под qr через _')
     await message.answer("Пример: https://example.com_Scan Me!")
-    await message.answer_photo(FSInputFile("file.png"))
+    await message.answer_photo(FSInputFile("example.png"))
     await state.set_state(LinkQr.link_qr)
 
 
