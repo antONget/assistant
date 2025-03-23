@@ -5,10 +5,10 @@ import random
 def create_robust_qr(url, qr_size, logo_path=None, logo_max_size_ratio=0.15):
     # Создание QR-кода с повышенной устойчивостью
     qr = qrcode.QRCode(
-        version=None,
+        version=5,
         error_correction=qrcode.constants.ERROR_CORRECT_H,  # Максимальная коррекция
         box_size=10,
-        border=3,  # Увеличенная граница для защиты позиционных меток
+        border=4,  # Увеличенная граница для защиты позиционных меток
     )
     qr.add_data(url)
     qr.make(fit=True)
@@ -115,11 +115,11 @@ def crop_square(image_path, output_path, left, top, width, height):
     cropped_img.save(output_path)
     print(f"Квадрат успешно вырезан и сохранён в {output_path}")
 
-async def start_create_qr(url: str, text: str, tg_id: int,  logo_path: str):
-# Параметры
+async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
+    # Параметры
     qr_size = 600  # Увеличенный размер для лучшего качества
-    text_height = 120
-    font_path = "handlers/arial_bolditalicmt.ttf"
+    text_height = 120 if text.strip() else 0  # Динамическая высота текста
+    font_path = "arial_bolditalicmt.ttf"
 
     # Генерация QR-кода
     qr_image = create_robust_qr(
@@ -129,19 +129,20 @@ async def start_create_qr(url: str, text: str, tg_id: int,  logo_path: str):
         logo_max_size_ratio=0.10
     )
 
-    # Генерация текста
-    text_image = create_text_layer(text, font_path, qr_size, text_height)
-
-    # Сборка финального изображения
+    # Создаем базовое изображение
     final_image = Image.new("RGBA", (qr_size, qr_size + text_height), (0, 0, 0, 0))
     final_image.paste(qr_image, (0, 0))
-    final_image.paste(text_image, (0, qr_size))
+
+    # Генерация текста только если он есть
+    if text.strip():
+        text_image = create_text_layer(text, font_path, qr_size, text_height)
+        final_image.paste(text_image, (0, qr_size))
 
     # Сохранение результата
-    final_image.save(f"{tg_id}.png")#тут вызов функции
+    final_image.save(f"{tg_id}.png")
     await start_crop(path_qr=f"{tg_id}.png")
 
-async def start_crop(path_qr: str,path_background: str = "background.png"):
+async def start_crop(path_qr: str ,path_background: str = "background.png"):
     # Открываем прозрачный QR-код
     qr_img = Image.open(path_qr)
     width, height = qr_img.size
@@ -173,5 +174,5 @@ async def start_crop(path_qr: str,path_background: str = "background.png"):
         width=width,
         height=height
     )
-    background.save(path_qr)
+    background.save(f"QR/{path_qr}")
     return path_qr
