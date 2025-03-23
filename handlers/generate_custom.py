@@ -26,7 +26,7 @@ async def download_photo(message: Message, bot: Bot):
         # Получаем объект File для скачивания
         photo_file = await bot.get_file(photo_info.file_id)
         # Ссылка для скачивания файла
-        photo_url = f'https://api.telegram.org/file/bot{config.tg_bot.token}/{photo_file.file_path}'
+        #photo_url = f'https://api.telegram.org/file/bot{config.tg_bot.token}/{photo_file.file_path}'
         # Создаём папку для сохранения файлов, если её нет
         if not os.path.exists(DOWNLOADS_FOLDER):
             os.makedirs(DOWNLOADS_FOLDER)
@@ -41,8 +41,8 @@ async def download_photo(message: Message, bot: Bot):
 async def all_message(message: Message, state: FSMContext) -> None:
     logging.info(f'all_message {message.chat.id} / {message.text}')
     await message.answer(text='Пришлите логотип , ссылку и текст который будет под qr через _')
-    await message.answer("Пример: https://example.com_Scan Me!")
-    await message.answer_photo(photo=FSInputFile("example.png"))
+    await message.answer("Пример: https://example.com Scan Me!")
+ #   await message.answer_photo(photo=FSInputFile("example.png"))
     await state.set_state(LinkQr.link_qr)
 
 
@@ -67,39 +67,72 @@ async def all_message(message: Message, state: FSMContext, bot: Bot) -> None:
                          reply_markup=await no_button(answer="No")) #тут измените путь к функции если измените ее расположение
     await state.set_state(LinkQr.text_qr)
 
-@router.callback_query(F.data == 'No', StateFilter(LinkQr.link_qr))
-async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
-    logging.info(f'handle_no_text: {callback.message.chat.id}')
-    # Получаем все сохраненные данные из состояния
-    state_data = await state.get_data()
 
-    # Создаем QR без текста
-    photo = await start_create_qr(
-        url=state_data['url'],  # Берем url из состояния
-        text="",  # Явно указываем пустой текст
-        tg_id=state_data['user_id'],  # ID из состояния
-        logo_path=state_data['logo_path']  # Путь к лого из состояния
-    )
 
-    await callback.message.answer_photo(photo=photo)
-    await state.clear()
-
+# 1. Исправленный обработчик для текста под QR
 @router.message(StateFilter(LinkQr.text_qr))
-async def all_message(message: Message, state: FSMContext, bot: Bot) -> None:
-    data = message.caption
-    # Получаем все сохраненные данные из состояния
-    state_data = await state.get_data()
+async def handle_text_qr(message: Message, state: FSMContext, bot: Bot) -> None:
+    try:
+        # Берем текст из сообщения, а не из подписи
+        text = message.text or ""
 
-    # Создаем QR без текста
-    photo = await start_create_qr(
-        url=state_data['url'],  # Берем url из состояния
-        text=data,
-        tg_id=state_data['user_id'],  # ID из состояния
-        logo_path=state_data['logo_path']  # Путь к лого из состояния
-    )
-    await message.answer_photo(photo=photo)
-    await state.clear()
+        # Получаем данные из состояния
+        state_data = await state.get_data()
+        if not all(key in state_data for key in ['url', 'user_id', 'logo_path']):
+            await message.answer("Ошибка: потеряны данные. Начните заново.")
+            await state.clear()
+            return
 
+        # Создаем QR
+        qr_path = await start_create_qr(
+            url=state_data['url'],
+            text=text,
+            tg_id=state_data['user_id'],
+            logo_path=state_data['logo_path']
+        )
+
+        if not qr_path or not os.path.exists(qr_path):
+            raise FileNotFoundError("QR не создан")
+
+        # Отправляем фото
+        await message.answer_photo(photo=FSInputFile(qr_path))
+
+    except Exception as e:
+        logging.error(f"Ошибка: {str(e)}")
+        await message.answer("Произошла ошибка при создании QR"f"Ошибка: {str(e)}")
+    finally:
+        await state.clear()
+
+
+# 2. Исправленный колбэк для кнопки "No"
+@router.callback_query(F.data.startswith('No'))  # Изменили состояние!
+async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
+    try:
+        state_data = await state.get_data()
+
+        if not all(key in state_data for key in ['url', 'user_id', 'logo_path']):
+            await callback.message.answer("Ошибка: потеряны данные. Начните заново.")
+            await state.clear()
+            return
+
+        qr_path = await start_create_qr(
+            url=state_data['url'],
+            text="",
+            tg_id=state_data['user_id'],
+            logo_path=state_data['logo_path']
+        )
+
+        if not qr_path or not os.path.exists(qr_path):
+            raise FileNotFoundError("QR не создан")
+
+        await callback.message.answer_photo(photo=FSInputFile(qr_path))
+        await callback.answer()
+
+    except Exception as e:
+        logging.error(f"Ошибка в колбэке: {str(e)}")
+        await callback.message.answer("Ошибка при создании QR")
+    finally:
+        await state.clear()
 
 
 #эту часть кода можно перенести в файл с подобным функционалом

@@ -118,7 +118,7 @@ def crop_square(image_path, output_path, left, top, width, height):
 async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
     # Параметры
     qr_size = 600  # Увеличенный размер для лучшего качества
-    text_height = 120 if text.strip() else 0  # Динамическая высота текста
+    text_height = 120 # Динамическая высота текста
     font_path = "arial_bolditalicmt.ttf"
 
     # Генерация QR-кода
@@ -130,17 +130,21 @@ async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
     )
 
     # Создаем базовое изображение
-    final_image = Image.new("RGBA", (qr_size, qr_size + text_height), (0, 0, 0, 0))
+    if text != "":
+        final_image = Image.new("RGBA", (qr_size, qr_size + text_height), (0, 0, 0, 0))
+    else:
+        final_image = Image.new("RGBA", (qr_size, qr_size ), (0, 0, 0, 0))
     final_image.paste(qr_image, (0, 0))
 
     # Генерация текста только если он есть
-    if text.strip():
+    if text:
         text_image = create_text_layer(text, font_path, qr_size, text_height)
         final_image.paste(text_image, (0, qr_size))
 
     # Сохранение результата
     final_image.save(f"{tg_id}.png")
-    await start_crop(path_qr=f"{tg_id}.png")
+    put = await start_crop(path_qr=f"{tg_id}.png")
+    return put
 
 async def start_crop(path_qr: str ,path_background: str = "background.png"):
     # Открываем прозрачный QR-код
