@@ -147,19 +147,21 @@ async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
     # Сохранение результата
     final_image.save(f"{tg_id}.png")
     # измените путь к папке с файлами
-    path_to_folder="/home/ulan/PycharmProjects/pythonProject3/backgrounds"
+    path_to_folder = "background"
     backgrounds = await file_in_folder()
     for background in backgrounds:
-        files.append(await start_crop(path_qr=f"{tg_id}.png", path_background = f"backgrounds/{background}"))
+        files.append(await start_crop(path_qr=f"{tg_id}.png", path_background=f"backgrounds/{background}"))
     print(files)
     return files
 
-async def file_in_folder(extension: str="png", folder_path: str="/home/ulan/PycharmProjects/pythonProject3/backgrounds"):
+
+async def file_in_folder(extension: str = "png", folder_path: str = "backgrounds"):
     files = await fif.get_files_by_extension(extension=extension,
-                                                   folder_path=folder_path)
+                                             folder_path=folder_path)
     return files
 
-async def start_crop(path_qr: str ,path_background: str = "background.png"):
+
+async def start_crop(path_qr: str, path_background: str = "background.png"):
     name = path_background.split("/")
     final_name = name[1].split(".")
     # Открываем прозрачный QR-код
@@ -167,15 +169,15 @@ async def start_crop(path_qr: str ,path_background: str = "background.png"):
     width, height = qr_img.size
 
     # Открываем фоновое изображение
-    background = Image.open(path_background)# тут еще переменная
+    background = Image.open(path_background) # тут еще переменная
     width_back, height_back = background.size
 
-    low_limit= 0
-    upper_limit_x= width_back - width
-    upper_limit_y= height_back - height
+    low_limit = 0
+    upper_limit_x = width_back - width
+    upper_limit_y = height_back - height
 
-    random_x= random.randint(low_limit, upper_limit_x)
-    random_y= random.randint(low_limit, upper_limit_y)
+    random_x = random.randint(low_limit, upper_limit_x)
+    random_y = random.randint(low_limit, upper_limit_y)
 
 
     # Накладываем QR-код на фон

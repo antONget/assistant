@@ -197,7 +197,7 @@ async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
     print(data_parts)
     qr_to_send=[]
     back_name = str(data_parts[1]).split("/")
-    list_photo = await file_in_folder(folder_path="/home/ulan/PycharmProjects/pythonProject3/backgrounds", extension=".png")
+    list_photo = await file_in_folder(folder_path="background", extension=".png")
     for name in list_photo:
         name = str(name).split(".")
         qr_to_send.append(f"{name[0]}_{callback.from_user.id}.image")
