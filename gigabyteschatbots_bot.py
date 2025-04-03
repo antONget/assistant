@@ -30,9 +30,11 @@ async def main():
     # Инициализируем бот и диспетчер
     bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher()
+    # Регистрируем функцию, которая будет вызвана при старте бота
+    dp.startup.register(on_startup_notify)
     # Регистрируем функцию, которая будет вызвана при остановке бота
     dp.shutdown.register(on_shutdown)
-    await on_startup_notify(bot=bot)
+    # await on_startup_notify(bot=bot)
     # Регистрируем router в диспетчере
     dp.include_router(error.router)
     dp.include_router(user_handlers.router)
