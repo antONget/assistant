@@ -2,7 +2,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 import qrcode
 import random
 
-def create_robust_qr(url, qr_size, logo_path=None, logo_max_size_ratio=0.15):
+from utils import file_in_folder as fif
+from utils import change_extension_for_photo as cefp
+async def create_robust_qr(url, qr_size, logo_path=None, logo_max_size_ratio=0.15):
     # Создание QR-кода с повышенной устойчивостью
     qr = qrcode.QRCode(
         version=5,
@@ -60,7 +62,7 @@ def create_robust_qr(url, qr_size, logo_path=None, logo_max_size_ratio=0.15):
     return img.resize((qr_size, qr_size))
 
 
-def create_text_layer(text, font_path, width, height):
+async def create_text_layer(text, font_path, width, height):
     # Улучшенное позиционирование текста
     image = Image.new("RGBA", (width, height), (255, 255, 255, 255))
     draw = ImageDraw.Draw(image)
@@ -91,7 +93,7 @@ def create_text_layer(text, font_path, width, height):
     image.putalpha(mask)
     return image
 
-def crop_square(image_path, output_path, left, top, width, height):
+async def crop_square(image_path, output_path, left, top, width, height):
     """
     Вырезает квадрат из изображения по заданным координатам.
 
@@ -134,19 +136,32 @@ async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
         final_image = Image.new("RGBA", (qr_size, qr_size + text_height), (0, 0, 0, 0))
     else:
         final_image = Image.new("RGBA", (qr_size, qr_size ), (0, 0, 0, 0))
-    final_image.paste(qr_image, (0, 0))
+    final_image.paste(await qr_image, (0, 0))
 
     # Генерация текста только если он есть
     if text:
         text_image = create_text_layer(text, font_path, qr_size, text_height)
-        final_image.paste(text_image, (0, qr_size))
+        final_image.paste(await text_image, (0, qr_size))
 
+    files = []
     # Сохранение результата
     final_image.save(f"{tg_id}.png")
-    put = await start_crop(path_qr=f"{tg_id}.png")
-    return put
+    # измените путь к папке с файлами
+    path_to_folder="/home/ulan/PycharmProjects/pythonProject3/backgrounds"
+    backgrounds = await file_in_folder()
+    for background in backgrounds:
+        files.append(await start_crop(path_qr=f"{tg_id}.png", path_background = f"backgrounds/{background}"))
+    print(files)
+    return files
+
+async def file_in_folder(extension: str="png", folder_path: str="/home/ulan/PycharmProjects/pythonProject3/backgrounds"):
+    files = await fif.get_files_by_extension(extension=extension,
+                                                   folder_path=folder_path)
+    return files
 
 async def start_crop(path_qr: str ,path_background: str = "background.png"):
+    name = path_background.split("/")
+    final_name = name[1].split(".")
     # Открываем прозрачный QR-код
     qr_img = Image.open(path_qr)
     width, height = qr_img.size
@@ -168,15 +183,16 @@ async def start_crop(path_qr: str ,path_background: str = "background.png"):
 
 
     # Сохраняем результат
-    background.save(path_qr)#как то изъебнуться
+    background.save(f"QR/{final_name[0]}_{path_qr}")#как то изъебнуться
 
-    crop_square(
-        image_path=path_qr,
-        output_path=path_qr,
+    await crop_square(
+        image_path=f"QR/{final_name[0]}_{path_qr}",
+        output_path=f"QR/{final_name[0]}_{path_qr}",
         left=random_x,
         top=random_y,
         width=width,
         height=height
     )
-    background.save(f"QR/{path_qr}")
-    return path_qr
+    background.save(f"QR/{final_name[0]}{path_qr}")
+    folder = await cefp.rename_extension_to_image(f"QR/{final_name[0]}_{path_qr}")
+    return folder

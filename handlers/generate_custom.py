@@ -1,13 +1,14 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile, InputMediaPhoto
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
+
 from config_data.config import Config, load_config
 import os
 import logging
 
-from qr_creator import start_create_qr
+from qr_creator import start_create_qr, file_in_folder
 
 router = Router()
 config: Config = load_config()
@@ -25,8 +26,6 @@ async def download_photo(message: Message, bot: Bot):
         photo_info = message.photo[-1]
         # Получаем объект File для скачивания
         photo_file = await bot.get_file(photo_info.file_id)
-        # Ссылка для скачивания файла
-        #photo_url = f'https://api.telegram.org/file/bot{config.tg_bot.token}/{photo_file.file_path}'
         # Создаём папку для сохранения файлов, если её нет
         if not os.path.exists(DOWNLOADS_FOLDER):
             os.makedirs(DOWNLOADS_FOLDER)
@@ -37,12 +36,54 @@ async def download_photo(message: Message, bot: Bot):
         await message.reply(f'Фотография сохранена: {photo_path}')
 
 
+async def index_in_list(input_list, name: str):
+    for nom_pos, element in enumerate(input_list, start = 0):
+        if name == element:
+            a = nom_pos
+            return a
+
+
+#тут идут кнопки вообще их нужно в отдельный
+
+#эту часть кода можно перенести в файл с подобным функционалом
+#тут продумана возможность расширения функционала
+
+
+async def no_button(answer: str) -> InlineKeyboardMarkup:
+    button_1 = InlineKeyboardButton(text=answer, callback_data=answer)
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[button_1]]
+    )
+    return keyboard
+
+async def navigate_photo_button(list_photo, now_photo: str):
+    index = int(await index_in_list(list_photo, now_photo))
+    button_page = InlineKeyboardButton(text=f"{index + 1}", callback_data="None")
+    button_next= InlineKeyboardButton(text=">>", callback_data=f"next_{now_photo}")
+    button_back=InlineKeyboardButton(text="<<", callback_data=f"back_{now_photo}")
+    button_none=InlineKeyboardButton(text="  ", callback_data=f"None")
+    if index==0 and len(list_photo)>index+1:
+        return InlineKeyboardMarkup(
+        inline_keyboard=[[button_none, button_page, button_next]]
+    )
+    elif index==0 and len(list_photo)==index+1:
+        return 0
+    elif len(list_photo)==index+1:
+        return InlineKeyboardMarkup(
+        inline_keyboard=[[button_back, button_page, button_none]]
+    )
+    else:
+        return InlineKeyboardMarkup(
+        inline_keyboard=[[button_back, button_page, button_next]]
+    )
+
+#тут основной ыункционал
+
 @router.message(F.text == '/QR')
 async def all_message(message: Message, state: FSMContext) -> None:
     logging.info(f'all_message {message.chat.id} / {message.text}')
     await message.answer(text='Пришлите логотип , ссылку и текст который будет под qr через _')
     await message.answer("Пример: https://example.com Scan Me!")
- #   await message.answer_photo(photo=FSInputFile("example.png"))
     await state.set_state(LinkQr.link_qr)
 
 
@@ -91,12 +132,20 @@ async def handle_text_qr(message: Message, state: FSMContext, bot: Bot) -> None:
             logo_path=state_data['logo_path']
         )
 
-        if not qr_path or not os.path.exists(qr_path):
-            raise FileNotFoundError("QR не создан")
-
         # Отправляем фото
-        await message.answer_photo(photo=FSInputFile(qr_path))
+        await message.answer_photo(
+            photo=FSInputFile(str(qr_path[0])),
+            reply_markup=await navigate_photo_button(list_photo=qr_path, now_photo=str(qr_path[0]))
+        )
 
+        """media_group = [
+            InputMediaPhoto(media=FSInputFile(str(qr)))
+            for qr in qr_path
+        ]
+
+        # Отправляем все фото одним сообщением
+        await message.answer_media_group(media=media_group)
+"""
     except Exception as e:
         logging.error(f"Ошибка: {str(e)}")
         await message.answer("Произошла ошибка при создании QR"f"Ошибка: {str(e)}")
@@ -121,11 +170,19 @@ async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
             tg_id=state_data['user_id'],
             logo_path=state_data['logo_path']
         )
+        print(qr_path)
+        await callback.message.answer_photo(
+            photo=FSInputFile(str(qr_path[0])),
+            reply_markup=await navigate_photo_button(list_photo = qr_path, now_photo=str(qr_path[0]))
+        )
+        """media_group = [
+            InputMediaPhoto(media=FSInputFile(str(qr)))
+            for qr in qr_path
+        ]
 
-        if not qr_path or not os.path.exists(qr_path):
-            raise FileNotFoundError("QR не создан")
+        # Отправляем все фото одним сообщением
+        await callback.message.answer_media_group(media=media_group)"""
 
-        await callback.message.answer_photo(photo=FSInputFile(qr_path))
         await callback.answer()
 
     except Exception as e:
@@ -134,12 +191,32 @@ async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
     finally:
         await state.clear()
 
+@router.callback_query(F.data.startswith('next_') | F.data.startswith('back_'))  # Изменили состояние!
+async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
+    data_parts = callback.data.split("_")
+    print(data_parts)
+    qr_to_send=[]
+    back_name = str(data_parts[1]).split("/")
+    list_photo = await file_in_folder(folder_path="/home/ulan/PycharmProjects/pythonProject3/backgrounds", extension=".png")
+    for name in list_photo:
+        name = str(name).split(".")
+        qr_to_send.append(f"{name[0]}_{callback.from_user.id}.image")
+    print(list_photo)
+    print(qr_to_send)
+    if "QR" in back_name:
+        index =int(await index_in_list(input_list=list_photo, name=f"{back_name[1]}.png"))
+    else:
+        index =int(await index_in_list(input_list=list_photo, name=f"{back_name[0]}.png"))
+    print(index)
+    if data_parts[0] == 'back':
+        print(f"QR/{str(qr_to_send[index-1])}")
+        await callback.message.edit_media(
+            media=InputMediaPhoto(media=FSInputFile(f"QR/{str(qr_to_send[index-1]).replace('.png', '.image')}")),
+            reply_markup=await navigate_photo_button(list_photo=qr_to_send, now_photo=qr_to_send[index-1]))
+    else:
+        print(f"QR/{str(qr_to_send[index+1])}")
+        await callback.message.edit_media(
+            media=InputMediaPhoto(media=FSInputFile(f"QR/{str(qr_to_send[index+1]).replace('.png', '.image')}")),
+            reply_markup=await navigate_photo_button(list_photo=qr_to_send, now_photo=qr_to_send[index + 1]))
 
-#эту часть кода можно перенести в файл с подобным функционалом
-#тут продумана возможность расширения функционала
-async def no_button(answer: str) -> InlineKeyboardMarkup:
-    button_1 = InlineKeyboardButton(text=answer, callback_data=answer)
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[button_1]]
-    )
-    return keyboard
+
