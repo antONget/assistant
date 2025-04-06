@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 
@@ -17,16 +16,8 @@ async def rename_extension_to_image(file_path: str) -> str:
     if not path.exists():
         raise FileNotFoundError(f"Файл не найден: {file_path}")
 
-    # Проверяем расширение
-    #if path.suffix.lower() != '.png':
-    #    raise ValueError(f"Файл должен иметь расширение .png, получено: {path.suffix}")
-
     # Формируем новый путь
     new_path = path.with_suffix('.image')
-
-    # Проверяем, не существует ли файл с новым именем
-    #if new_path.exists():
-     #   raise FileExistsError(f"Файл уже существует: {new_path}")
 
     # Переименовываем файл
     try:

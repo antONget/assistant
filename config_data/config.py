@@ -19,3 +19,25 @@ def load_config(path: str = None) -> Config:
     return Config(tg_bot=TgBot(token=env('BOT_TOKEN'),
                                support_id=env('SUPPORT_ID'),
                                admin_ids=env('ADMIN_IDS')))
+
+
+@dataclass
+class Constant:
+    background_folder: str
+    font_path: str
+    short_background_folder: str
+    download: str
+    save_folder: str
+
+
+def load_constant(path: str = None) -> Constant:
+    env = Env()
+    env.read_env(path)
+    return Constant(
+        background_folder=env('BACKGRAUND_FOLDER'),
+        font_path=env('FONT_PATH'),
+        short_background_folder=env('SHORT_BACKGRAUND_FOLDER'),
+        download=env('DOWNLOADS_FOLDER'),
+        save_folder=env('SAVE_FOLDER')
+    )
+

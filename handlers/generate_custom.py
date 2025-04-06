@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
 
-from config_data.config import Config, load_config
+from config_data.config import Config, load_config, load_constant
 import os
 import logging
 
@@ -12,12 +12,12 @@ from qr_creator import start_create_qr, file_in_folder
 
 router = Router()
 config: Config = load_config()
+const = load_constant()
 
 class LinkQr(StatesGroup):
     link_qr = State()
     text_qr = State()
 
-DOWNLOADS_FOLDER = 'QR'
 
 async def download_photo(message: Message, bot: Bot):
     # Проверяем, есть ли файл в сообщении
@@ -27,10 +27,10 @@ async def download_photo(message: Message, bot: Bot):
         # Получаем объект File для скачивания
         photo_file = await bot.get_file(photo_info.file_id)
         # Создаём папку для сохранения файлов, если её нет
-        if not os.path.exists(DOWNLOADS_FOLDER):
-            os.makedirs(DOWNLOADS_FOLDER)
+        if not os.path.exists(const.download):
+            os.makedirs(const.download)
         # Загружаем фотографию в локальную папку
-        photo_path = os.path.join(DOWNLOADS_FOLDER, f'{message.from_user.id}.png')
+        photo_path = os.path.join(const.download, f'{message.from_user.id}.png')
         await bot.download_file(photo_file.file_path, photo_path)
         # Далее можно провести необходимую обработку или отправить ответ пользователю
         await message.reply(f'Фотография сохранена: {photo_path}')
@@ -102,7 +102,7 @@ async def all_message(message: Message, state: FSMContext, bot: Bot) -> None:
 
     # Скачиваем и сохраняем логотип
     await download_photo(message=message, bot=bot)
-    logo_path = f"QR/{message.from_user.id}.png"
+    logo_path = f"{const.save_folder}/{message.from_user.id}.png"
     await state.update_data(logo_path=logo_path)  # Сохраняем путь к лого в состоянии
     await message.answer(text="Если хотите ,чтобы под qr был текст отправьте его или нажмите на кнопку",
                          reply_markup=await no_button(answer="No")) #тут измените путь к функции если измените ее расположение
@@ -112,7 +112,7 @@ async def all_message(message: Message, state: FSMContext, bot: Bot) -> None:
 
 # 1. Исправленный обработчик для текста под QR
 @router.message(StateFilter(LinkQr.text_qr))
-async def handle_text_qr(message: Message, state: FSMContext, bot: Bot) -> None:
+async def handle_text_qr(message: Message, state: FSMContext) -> None:
     try:
         # Берем текст из сообщения, а не из подписи
         text = message.text or ""
@@ -138,14 +138,7 @@ async def handle_text_qr(message: Message, state: FSMContext, bot: Bot) -> None:
             reply_markup=await navigate_photo_button(list_photo=qr_path, now_photo=str(qr_path[0]))
         )
 
-        """media_group = [
-            InputMediaPhoto(media=FSInputFile(str(qr)))
-            for qr in qr_path
-        ]
 
-        # Отправляем все фото одним сообщением
-        await message.answer_media_group(media=media_group)
-"""
     except Exception as e:
         logging.error(f"Ошибка: {str(e)}")
         await message.answer("Произошла ошибка при создании QR"f"Ошибка: {str(e)}")
@@ -170,18 +163,11 @@ async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
             tg_id=state_data['user_id'],
             logo_path=state_data['logo_path']
         )
-        print(qr_path)
         await callback.message.answer_photo(
             photo=FSInputFile(str(qr_path[0])),
             reply_markup=await navigate_photo_button(list_photo = qr_path, now_photo=str(qr_path[0]))
         )
-        """media_group = [
-            InputMediaPhoto(media=FSInputFile(str(qr)))
-            for qr in qr_path
-        ]
 
-        # Отправляем все фото одним сообщением
-        await callback.message.answer_media_group(media=media_group)"""
 
         await callback.answer()
 
@@ -191,32 +177,27 @@ async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
     finally:
         await state.clear()
 
+
 @router.callback_query(F.data.startswith('next_') | F.data.startswith('back_'))  # Изменили состояние!
-async def handle_no_text(callback: CallbackQuery, state: FSMContext) -> None:
+async def handle_no_text(callback: CallbackQuery) -> None:
     data_parts = callback.data.split("_")
-    print(data_parts)
     qr_to_send=[]
     back_name = str(data_parts[1]).split("/")
-    list_photo = await file_in_folder(folder_path="background", extension=".png")
+    list_photo = await file_in_folder(folder_path=str(const.background_folder), extension=".png")
     for name in list_photo:
         name = str(name).split(".")
         qr_to_send.append(f"{name[0]}_{callback.from_user.id}.image")
-    print(list_photo)
-    print(qr_to_send)
     if "QR" in back_name:
         index =int(await index_in_list(input_list=list_photo, name=f"{back_name[1]}.png"))
     else:
         index =int(await index_in_list(input_list=list_photo, name=f"{back_name[0]}.png"))
-    print(index)
     if data_parts[0] == 'back':
-        print(f"QR/{str(qr_to_send[index-1])}")
         await callback.message.edit_media(
-            media=InputMediaPhoto(media=FSInputFile(f"QR/{str(qr_to_send[index-1]).replace('.png', '.image')}")),
+            media=InputMediaPhoto(media=FSInputFile(f"{const.save_folder}/{str(qr_to_send[index-1]).replace('.png', '.image')}")),
             reply_markup=await navigate_photo_button(list_photo=qr_to_send, now_photo=qr_to_send[index-1]))
     else:
-        print(f"QR/{str(qr_to_send[index+1])}")
         await callback.message.edit_media(
-            media=InputMediaPhoto(media=FSInputFile(f"QR/{str(qr_to_send[index+1]).replace('.png', '.image')}")),
+            media=InputMediaPhoto(media=FSInputFile(f"{const.save_folder}/{str(qr_to_send[index+1]).replace('.png', '.image')}")),
             reply_markup=await navigate_photo_button(list_photo=qr_to_send, now_photo=qr_to_send[index + 1]))
 
 

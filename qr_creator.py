@@ -4,6 +4,15 @@ import random
 
 from utils import file_in_folder as fif
 from utils import change_extension_for_photo as cefp
+
+
+from config_data.config import load_constant
+
+
+const = load_constant()
+
+
+
 async def create_robust_qr(url, qr_size, logo_path=None, logo_max_size_ratio=0.15):
     # Создание QR-кода с повышенной устойчивостью
     qr = qrcode.QRCode(
@@ -115,13 +124,12 @@ async def crop_square(image_path, output_path, left, top, width, height):
 
     # Сохраняем результат
     cropped_img.save(output_path)
-    print(f"Квадрат успешно вырезан и сохранён в {output_path}")
 
 async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
     # Параметры
     qr_size = 600  # Увеличенный размер для лучшего качества
     text_height = 120 # Динамическая высота текста
-    font_path = "arial_bolditalicmt.ttf"
+    font_path = const.font_path
 
     # Генерация QR-кода
     qr_image = create_robust_qr(
@@ -147,21 +155,17 @@ async def start_create_qr(url: str, tg_id: int, logo_path: str, text: str = ""):
     # Сохранение результата
     final_image.save(f"{tg_id}.png")
     # измените путь к папке с файлами
-    path_to_folder = "background"
     backgrounds = await file_in_folder()
     for background in backgrounds:
-        files.append(await start_crop(path_qr=f"{tg_id}.png", path_background=f"backgrounds/{background}"))
-    print(files)
+        files.append(await start_crop(path_qr=f"{tg_id}.png", path_background = f"{const.short_background_folder}/{background}"))
     return files
 
-
-async def file_in_folder(extension: str = "png", folder_path: str = "backgrounds"):
+async def file_in_folder(extension: str="png", folder_path: str=const.background_folder):
     files = await fif.get_files_by_extension(extension=extension,
-                                             folder_path=folder_path)
+                                                   folder_path=folder_path)
     return files
 
-
-async def start_crop(path_qr: str, path_background: str = "background.png"):
+async def start_crop(path_qr: str ,path_background: str):
     name = path_background.split("/")
     final_name = name[1].split(".")
     # Открываем прозрачный QR-код
@@ -169,15 +173,15 @@ async def start_crop(path_qr: str, path_background: str = "background.png"):
     width, height = qr_img.size
 
     # Открываем фоновое изображение
-    background = Image.open(path_background) # тут еще переменная
+    background = Image.open(path_background)# тут еще переменная
     width_back, height_back = background.size
 
-    low_limit = 0
-    upper_limit_x = width_back - width
-    upper_limit_y = height_back - height
+    low_limit= 0
+    upper_limit_x= width_back - width
+    upper_limit_y= height_back - height
 
-    random_x = random.randint(low_limit, upper_limit_x)
-    random_y = random.randint(low_limit, upper_limit_y)
+    random_x= random.randint(low_limit, upper_limit_x)
+    random_y= random.randint(low_limit, upper_limit_y)
 
 
     # Накладываем QR-код на фон
@@ -185,16 +189,16 @@ async def start_crop(path_qr: str, path_background: str = "background.png"):
 
 
     # Сохраняем результат
-    background.save(f"QR/{final_name[0]}_{path_qr}")#как то изъебнуться
+    background.save(f"{const.save_folder}/{final_name[0]}_{path_qr}")#как то изъебнуться
 
     await crop_square(
-        image_path=f"QR/{final_name[0]}_{path_qr}",
-        output_path=f"QR/{final_name[0]}_{path_qr}",
+        image_path=f"{const.save_folder}/{final_name[0]}_{path_qr}",
+        output_path=f"{const.save_folder}/{final_name[0]}_{path_qr}",
         left=random_x,
         top=random_y,
         width=width,
         height=height
     )
-    background.save(f"QR/{final_name[0]}{path_qr}")
-    folder = await cefp.rename_extension_to_image(f"QR/{final_name[0]}_{path_qr}")
+    background.save(f"{const.save_folder}/{final_name[0]}{path_qr}")
+    folder = await cefp.rename_extension_to_image(f"{const.save_folder}/{final_name[0]}_{path_qr}")
     return folder
